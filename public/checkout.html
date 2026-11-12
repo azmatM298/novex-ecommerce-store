@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base href="http://localhost:3000/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout | NOVEX</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="navbar">
+    <a href="/" class="logo">NOVEX<span>.</span></a>
+    <nav>
+        <a href="/">Home</a>
+        <a href="/products.html">Products</a>
+        <a href="/cart.html">Cart ðŸ›’</a>
+    </nav>
+</header>
+
+<section class="categories">
+    <h2>Checkout</h2>
+
+    <form id="checkout-form">
+        <input type="text" id="customer-name"
+            placeholder="Your Full Name" required>
+
+        <br><br>
+
+        <input type="tel" id="phone"
+            placeholder="Phone Number" required>
+
+        <br><br>
+
+        <textarea id="address"
+            placeholder="Complete Delivery Address"
+            required></textarea>
+
+        <br><br>
+
+        <h3>Payment Method: Cash on Delivery</h3>
+
+        <br>
+
+        <button type="submit">Place Order</button>
+    </form>
+
+    <p id="checkout-message"></p>
+</section>
+
+<script src="checkout.js"></script>
+</body>
+</html>

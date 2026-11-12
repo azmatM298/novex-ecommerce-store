@@ -1,0 +1,81 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base href="http://localhost:3000/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOVEX Admin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="navbar">
+    <a href="/" class="logo">NOVEX<span>.</span></a>
+    <nav><a href="/">Visit Store</a></nav>
+</header>
+
+<section class="categories">
+
+    <div id="admin-login">
+        <h2>Admin Login</h2>
+        <form id="admin-login-form">
+            <input type="email" id="admin-email" placeholder="Admin Email" required>
+            <br><br>
+            <input type="password" id="admin-password" placeholder="Password" required>
+            <br><br>
+            <button type="submit">Login</button>
+        </form>
+        <p id="login-message"></p>
+    </div>
+
+    <div id="dashboard" hidden>
+        <h2>Admin Dashboard</h2>
+        <button id="logout-btn">Logout</button>
+
+        <h3>Add New Product</h3>
+
+        <form id="product-form">
+            <input id="name" placeholder="Product Name" required>
+            <br><br>
+
+            <select id="category" required>
+                <option value="">Select Category</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Fashion">Fashion</option>
+                <option value="Home & Living">Home & Living</option>
+                <option value="Beauty">Beauty</option>
+                <option value="Sports">Sports</option>
+                <option value="Accessories">Accessories</option>
+            </select>
+            <br><br>
+
+            <input id="price" type="number" min="0.01" step="0.01" placeholder="Price" required>
+            <br><br>
+
+            <input id="stock" type="number" min="0" placeholder="Stock" required>
+            <br><br>
+
+            <input id="image" placeholder="Image path">
+            <br><br>
+
+            <textarea id="description" placeholder="Description"></textarea>
+            <br><br>
+
+            <button type="submit">Add Product</button>
+        </form>
+
+        <p id="admin-message"></p>
+
+        <h3>All Products</h3>
+        <div id="admin-products"></div>
+
+        <h3>Customer Orders</h3>
+        <div id="admin-orders"></div>
+    </div>
+
+</section>
+
+<script src="admin.js"></script>
+</body>
+</html>
