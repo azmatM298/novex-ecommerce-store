@@ -4,11 +4,17 @@ const Database = require("better-sqlite3");
 const session = require("express-session");
 const dotenv = require("dotenv");
 const path = require("path");
+const fs = require("fs");
 
 dotenv.config();
 
 const app = express();
-const db = new Database(path.join(__dirname, "database", "store.db"));
+
+// Create database folder automatically
+const databaseDir = path.join(__dirname, "database");
+fs.mkdirSync(databaseDir, { recursive: true });
+
+const db = new Database(path.join(databaseDir, "store.db"));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -17,7 +23,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET || "change-this-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { httpOnly: true, sameSite: "lax", secure: false }
+    cookie: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production"
+    }
 }));
 
 app.use(express.static(path.join(__dirname, "public")));
@@ -52,15 +62,19 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 `);
 
-// Existing database mein category column add karna
 const columns = db.prepare("PRAGMA table_info(products)").all();
+
 if (!columns.some(col => col.name === "category")) {
-    db.exec("ALTER TABLE products ADD COLUMN category TEXT NOT NULL DEFAULT 'Electronics'");
+    db.exec(
+        "ALTER TABLE products ADD COLUMN category TEXT NOT NULL DEFAULT 'Electronics'"
+    );
 }
 
 function requireAdmin(req, res, next) {
     if (!req.session.isAdmin) {
-        return res.status(401).json({ message: "Admin login required" });
+        return res.status(401).json({
+            message: "Admin login required"
+        });
     }
     next();
 }
@@ -73,44 +87,61 @@ app.post("/api/admin/login", (req, res) => {
         email !== process.env.ADMIN_EMAIL ||
         password !== process.env.ADMIN_PASSWORD
     ) {
-        return res.status(401).json({ message: "Invalid login details" });
+        return res.status(401).json({
+            message: "Invalid login details"
+        });
     }
 
     req.session.isAdmin = true;
-    res.json({ message: "Login successful" });
-});
 
-app.post("/api/admin/logout", requireAdmin, (req, res) => {
-    req.session.destroy(() => {
-        res.json({ message: "Logged out successfully" });
+    res.json({
+        message: "Login successful"
     });
 });
 
-app.get("/api/admin/check", requireAdmin, (req, res) => {
-    res.json({ loggedIn: true });
+// ADMIN LOGOUT
+app.post("/api/admin/logout", requireAdmin, (req, res) => {
+    req.session.destroy(() => {
+        res.json({
+            message: "Logged out successfully"
+        });
+    });
 });
 
-// PRODUCTS
+// ADMIN CHECK
+app.get("/api/admin/check", requireAdmin, (req, res) => {
+    res.json({
+        loggedIn: true
+    });
+});
+
+// GET PRODUCTS
 app.get("/api/products", (req, res) => {
     const { category } = req.query;
 
     if (category) {
         return res.json(
-            db.prepare("SELECT * FROM products WHERE category = ? ORDER BY id DESC")
-              .all(category)
+            db.prepare(
+                "SELECT * FROM products WHERE category = ? ORDER BY id DESC"
+            ).all(category)
         );
     }
 
-    res.json(db.prepare("SELECT * FROM products ORDER BY id DESC").all());
+    res.json(
+        db.prepare("SELECT * FROM products ORDER BY id DESC").all()
+    );
 });
 
+// GET SINGLE PRODUCT
 app.get("/api/products/:id", (req, res) => {
     const product = db.prepare(
         "SELECT * FROM products WHERE id = ?"
     ).get(req.params.id);
 
     if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+        return res.status(404).json({
+            message: "Product not found"
+        });
     }
 
     res.json(product);
@@ -118,7 +149,14 @@ app.get("/api/products/:id", (req, res) => {
 
 // ADD PRODUCT
 app.post("/api/admin/products", requireAdmin, (req, res) => {
-    const { name, description, price, stock, image, category } = req.body;
+    const {
+        name,
+        description,
+        price,
+        stock,
+        image,
+        category
+    } = req.body;
 
     const allowedCategories = [
         "Electronics",
@@ -137,7 +175,9 @@ app.post("/api/admin/products", requireAdmin, (req, res) => {
         Number(stock) < 0 ||
         !allowedCategories.includes(category)
     ) {
-        return res.status(400).json({ message: "Invalid product details" });
+        return res.status(400).json({
+            message: "Invalid product details"
+        });
     }
 
     const result = db.prepare(`
@@ -161,7 +201,12 @@ app.post("/api/admin/products", requireAdmin, (req, res) => {
 
 // PLACE ORDER
 app.post("/api/orders", (req, res) => {
-    const { customer_name, phone, address, items } = req.body;
+    const {
+        customer_name,
+        phone,
+        address,
+        items
+    } = req.body;
 
     if (
         !customer_name?.trim() ||
@@ -170,7 +215,9 @@ app.post("/api/orders", (req, res) => {
         !Array.isArray(items) ||
         items.length === 0
     ) {
-        return res.status(400).json({ message: "Please complete all details" });
+        return res.status(400).json({
+            message: "Please complete all details"
+        });
     }
 
     try {
@@ -190,10 +237,13 @@ app.post("/api/orders", (req, res) => {
                 ).get(item.id);
 
                 if (!product || product.stock < quantity) {
-                    throw new Error("Product unavailable or insufficient stock");
+                    throw new Error(
+                        "Product unavailable or insufficient stock"
+                    );
                 }
 
                 total += product.price * quantity;
+
                 orderItems.push({
                     id: product.id,
                     quantity,
@@ -202,16 +252,27 @@ app.post("/api/orders", (req, res) => {
             }
 
             const order = db.prepare(`
-                INSERT INTO orders (customer_name, phone, address, total)
+                INSERT INTO orders
+                (customer_name, phone, address, total)
                 VALUES (?, ?, ?, ?)
-            `).run(customer_name.trim(), phone.trim(), address.trim(), total);
+            `).run(
+                customer_name.trim(),
+                phone.trim(),
+                address.trim(),
+                total
+            );
 
             for (const item of orderItems) {
                 db.prepare(`
                     INSERT INTO order_items
                     (order_id, product_id, quantity, price)
                     VALUES (?, ?, ?, ?)
-                `).run(order.lastInsertRowid, item.id, item.quantity, item.price);
+                `).run(
+                    order.lastInsertRowid,
+                    item.id,
+                    item.quantity,
+                    item.price
+                );
 
                 db.prepare(
                     "UPDATE products SET stock = stock - ? WHERE id = ?"
@@ -222,10 +283,16 @@ app.post("/api/orders", (req, res) => {
         });
 
         const orderId = createOrder();
-        res.json({ message: "Order placed successfully", orderId });
+
+        res.json({
+            message: "Order placed successfully",
+            orderId
+        });
 
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        res.status(400).json({
+            message: error.message
+        });
     }
 });
 
@@ -236,12 +303,15 @@ app.get("/api/admin/orders", requireAdmin, (req, res) => {
     );
 });
 
+// HOME PAGE
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
+    res.sendFile(
+        path.join(__dirname, "public", "index.html")
+    );
 });
 
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`NOVEX Store running at http://localhost:${PORT}`);
+    console.log(`NOVEX Store running on port ${PORT}`);
 });
